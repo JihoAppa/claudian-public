@@ -9,6 +9,12 @@ title: "Claudian Public Research"
 </header>
 
 <main>
+{% if site.research.size == 0 %}
+  <section>
+    <h2>No manuscripts published</h2>
+    <p class="summary">No research manuscript has been approved for public release yet.</p>
+  </section>
+{% else %}
 {% assign sections = site.research | group_by: "section" %}
 {% for section in sections %}
   <section>
@@ -23,4 +29,5 @@ title: "Claudian Public Research"
     </ol>
   </section>
 {% endfor %}
+{% endif %}
 </main>
