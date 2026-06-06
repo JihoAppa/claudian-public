@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kernel Policy DSL Object Lifetime Invariant · Claudian Public Research</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="../index.html" class="brand">Claudian Public Research</a>
+  </header>
+  <main class="page">
+    <p class="summary">A reusable invariant for nf_tables-style kernel policy DSL lifetime bugs.</p>
+    <h1>Kernel Policy DSL Object Lifetime Invariant</h1>
+<div class="callout"><strong>TLDR</strong>
+<p>Kernel policy DSL은 rule, set, element, verdict 같은 object가 transaction/GC/release path에서 하나의 lifetime owner를 가져야 한다.</p></div>
+<blockquote>CVE-2024-0193과 CVE-2024-1086은 <code>nf_tables</code> 계열에서 value semantics와 object lifetime이 어긋난 사례다.</blockquote>
+<blockquote>Swarmer는 kernel DSL audit에서 parser correctness보다 transaction state machine과 release path를 먼저 모델링해야 한다.</blockquote>
+<h2>정의</h2>
+<p>Kernel Policy DSL Object Lifetime Invariant는 <code>nf_tables</code>, eBPF, seccomp, filesystem policy parser처럼 kernel 안에서 작은 DSL을 해석하는 subsystem이 지켜야 하는 lifetime 규칙이다.</p>
+<p>위험한 구조:</p>
+<ul>
+<li>rule/set/element가 transaction 중 active/deactivated state를 오간다.</li>
+<li>commit/abort/destroy/GC path가 같은 object ownership을 다르게 해석한다.</li>
+<li>catchall, verdict, anonymous set 같은 special case가 normal path와 다른 lifetime을 가진다.</li>
+<li>validation은 통과했지만 release path에서 value 의미가 바뀐다.</li>
+<li>module/user namespace/policy API reachability가 local attacker에게 열려 있다.</li>
+</ul>
+<h2>사례 매핑</h2>
+<table>
+<thead><tr>
+<th>CVE</th>
+<th>Subsystem</th>
+<th>깨진 축</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>CVE-2024-0193</td>
+<td><code>nf_tables</code> pipapo set backend</td>
+<td>catchall element lifetime / GC / transaction state</td>
+</tr>
+<tr>
+<td>CVE-2024-1086</td>
+<td><code>nf_tables</code> verdict handling</td>
+<td>value validation / double-free / UAF path</td>
+</tr>
+</tbody>
+</table>
+<h2>분석 질문</h2>
+<ul>
+<li>object가 active, deactivated, pending destroy, GC candidate 상태를 언제 오가는가?</li>
+<li>한 transaction path에서 object를 free했는데 다른 path가 pointer/reference를 유지하는가?</li>
+<li>special element, catchall, anonymous object가 normal lifetime rule을 우회하는가?</li>
+<li>release path가 validation path와 같은 value semantics를 쓰는가?</li>
+<li>target config에서 해당 subsystem이 reachable한가?</li>
+</ul>
+<h2>Swarmer Method Card</h2>
+<pre><code>
+method_card:
+  id: kernel-policy-dsl-object-lifetime-invariant
+  title: Kernel policy DSL objects need one owner across transaction and GC paths
+  cve_ids: [CVE-2024-0193, CVE-2024-1086]
+  affected_projects: [Linux kernel nf_tables]
+  vulnerability_class: local-privilege-escalation
+  confidence: high
+  analysis_reverse_engineering:
+    researcher_question: &quot;Can a kernel policy object be freed, deactivated, or garbage-collected while still reachable through another semantic state?&quot;
+    entrypoints: [nf_tables, pipapo, catchall, set element, verdict, transaction commit, transaction abort, GC]
+    trust_boundary: &quot;local user or container workload -&gt; kernel policy DSL API&quot;
+    sink: &quot;use-after-free, double-free, stale policy object reference&quot;
+    missing_invariant: &quot;object lifetime is not unified across validation, transaction, and release paths&quot;
+    patch_delta_signal: &quot;refcount or state validation added; GC exclusion; normalized verdict range&quot;
+  reusable_pattern:
+    trigger_questions:
+      - &quot;Does a special-case object have a different lifetime than normal objects?&quot;
+      - &quot;Can abort/commit/GC race or reorder object release?&quot;
+      - &quot;Are values normalized before they affect release paths?&quot;
+      - &quot;Is the subsystem reachable in the target config?&quot;
+    expected_safe_behavior:
+      - &quot;Each object has a single lifetime owner across transaction states.&quot;
+      - &quot;GC cannot free objects still reachable by active or pending paths.&quot;
+      - &quot;Invalid values cannot reach release logic.&quot;
+    false_positive_checks:
+      - &quot;Affected subsystem is disabled in kernel config.&quot;
+      - &quot;Required namespace or capability is unavailable.&quot;
+      - &quot;Fixed kernel contains the state/refcount validation.&quot;
+    proof_strategy:
+      - &quot;Use authorized local/kernelCTF lab only.&quot;
+      - &quot;Verify version, config, reachability, and fixed behavior.&quot;
+      - &quot;Do not copy public exploit payloads into analysis context.&quot;
+  swarmer_mapping:
+    adapters: [kernel, linux, oss-c]
+    stages: [scout, map, BCDA, BGA, P14-review]
+    plugin_kind: runtime-invariant
+    priority: high
+</code></pre>
+<h2>Related</h2>
+<ul>
+<li>google-kernelctf-cve-2024-0193-netfilter-pipapo-uaf-26-06</li>
+<li>linux-nftables-cve-2024-1086-public-exploit-26-06</li>
+<li><a href="./linux-public-exploit-triage.html">Linux-Public-Exploit-Triage</a></li>
+<li><a href="./google-kernelctf-research-lane-2026-06.html">Google-KernelCTF-Research-Lane-26-06</a></li>
+<li>Swarmer</li>
+</ul>
+<h2>Sources</h2>
+<ul>
+<li>google-kernelctf-cve-2024-0193-netfilter-pipapo-uaf-26-06</li>
+<li>linux-nftables-cve-2024-1086-public-exploit-26-06</li>
+</ul>
+  </main>
+  <footer>
+    Published from a private allowlist. Generated 2026-06-06 18:50.
+  </footer>
+</body>
+</html>

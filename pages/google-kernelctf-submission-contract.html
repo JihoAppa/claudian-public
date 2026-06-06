@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Google kernelCTF Submission Contract · Claudian Public Research</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="../index.html" class="brand">Claudian Public Research</a>
+  </header>
+  <main class="page">
+    <p class="summary">The kernelCTF submission contract as a reproducibility and proof-quality checklist.</p>
+    <h1>Google kernelCTF Submission Contract</h1>
+<div class="callout"><strong>TLDR</strong>
+<p>kernelCTF는 exploit 성공 여부뿐 아니라 target config, stability, disclosure timing, documentation structure를 함께 요구하는 계약이다.</p></div>
+<blockquote>이 계약은 Swarmer의 BGA/P14 레인에 &quot;proof quality&quot;와 &quot;portability&quot; 체크리스트로 들어가야 한다.</blockquote>
+<blockquote>핵심은 payload 생성이 아니라 reproducibility, target constraint, vulnerability/exploit documentation separation이다.</blockquote>
+<h2>정의</h2>
+<p>Google kernelCTF Submission Contract는 Linux kernel vulnerability exploit 연구를 공개 가능한 구조로 제출하기 위한 규칙 묶음이다.</p>
+<p>중요한 contract field:</p>
+<ul>
+<li>target kernel version and config</li>
+<li>disabled features: user namespace, <code>io_uring</code>, <code>nftables</code> 등</li>
+<li>reliability requirement and stability bonus</li>
+<li>0-day vs 1-day timing and disclosure protection window</li>
+<li>vulnerability documentation vs exploit documentation separation</li>
+<li>public PR structure and metadata schema</li>
+<li>kernelXDK portability requirement</li>
+</ul>
+<h2>Swarmer 적용</h2>
+<p>Swarmer는 kernelCTF 문서를 다음 방식으로 써야 한다.</p>
+<table>
+<thead><tr>
+<th>Lane</th>
+<th>적용</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>scout</td>
+<td>target config와 disabled feature를 candidate reachability에 반영</td>
+</tr>
+<tr>
+<td>map</td>
+<td>CVE root cause와 exploit technique을 별도 graph로 분리</td>
+</tr>
+<tr>
+<td>BCDA</td>
+<td>duplicate, feature-disabled, version mismatch를 false-positive check로 처리</td>
+</tr>
+<tr>
+<td>BGA</td>
+<td>owned lab/kernelCTF environment만 proof target으로 허용</td>
+</tr>
+<tr>
+<td>P14 review</td>
+<td>reliability, runtime limit, kernelXDK, disclosure deadline을 checklist화</td>
+</tr>
+</tbody>
+</table>
+<h2>분석 질문</h2>
+<ul>
+<li>이 CVE는 current LTS target의 config에서 reachable한가?</li>
+<li>exploit이 target-specific offset에 의존하는가, kernelXDK로 추상화 가능한가?</li>
+<li>vulnerability docs와 exploit docs가 분리되어 있는가?</li>
+<li>stability가 10%/90% threshold를 충족하는 evidence가 있는가?</li>
+<li>0-day/1-day disclosure timing이 reward eligibility와 충돌하지 않는가?</li>
+</ul>
+<h2>Related</h2>
+<ul>
+<li>google-kernelctf-rules-26-06</li>
+<li><a href="./google-kernelctf-research-lane-2026-06.html">Google-KernelCTF-Research-Lane-26-06</a></li>
+<li><a href="./linux-public-exploit-triage.html">Linux-Public-Exploit-Triage</a></li>
+<li>Swarmer</li>
+</ul>
+<h2>Sources</h2>
+<ul>
+<li>google-kernelctf-rules-26-06</li>
+</ul>
+  </main>
+  <footer>
+    Published from a private allowlist. Generated 2026-06-06 18:50.
+  </footer>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kernel Page Cache Write Invariant · Claudian Public Research</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="../index.html" class="brand">Claudian Public Research</a>
+  </header>
+  <main class="page">
+    <p class="summary">A shared invariant for Dirty COW, Dirty Pipe, Copy Fail, and Dirty Frag style bugs.</p>
+    <h1>Kernel Page Cache Write Invariant</h1>
+<div class="callout"><strong>TLDR</strong>
+<p>kernel fast path가 page-backed memory에 in-place write를 하기 전에는 page ownership, COW state, reference semantics를 증명해야 한다.</p></div>
+<blockquote>Dirty COW, Dirty Pipe, Copy Fail, Dirty Frag는 서로 다른 subsystem에서 같은 &quot;read-only/shared page가 attacker-writable이 되는가&quot; 질문으로 묶인다.</blockquote>
+<blockquote>Swarmer는 kernel audit에서 reachability와 operational mitigation blast radius를 함께 다뤄야 한다.</blockquote>
+<h2>정의</h2>
+<p>Kernel Page Cache Write Invariant는 Linux kernel의 network, crypto, splice, filesystem, page-cache 경로에서 shared page를 private mutable buffer처럼 쓰면 안 된다는 원칙이다.</p>
+<p>취약한 구조는 다음과 같다.</p>
+<ul>
+<li>local user가 kernel path에 attacker-controlled bytes를 넣을 수 있다.</li>
+<li>kernel fast path가 packet/fragment/crypto output을 in-place로 쓴다.</li>
+<li>target page가 page-cache-backed 또는 shared/COW-sensitive memory다.</li>
+<li>write primitive가 read-only file cache나 executable mapping에 영향을 준다.</li>
+<li>user namespace, module autoloading, socket reachability로 trigger path가 열린다.</li>
+</ul>
+<h2>대표 사례</h2>
+<table>
+<thead><tr>
+<th>사례</th>
+<th>CVE</th>
+<th>깨진 축</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Dirty COW</td>
+<td>CVE-2016-5195</td>
+<td>COW race가 read-only private mapping write로 전환</td>
+</tr>
+<tr>
+<td>Dirty Pipe</td>
+<td>CVE-2022-0847</td>
+<td>stale pipe buffer flag가 read-only file page cache write로 전파</td>
+</tr>
+<tr>
+<td>Copy Fail</td>
+<td>CVE-2026-31431</td>
+<td><code>AF_ALG</code>/<code>splice</code>/crypto in-place optimization이 page-cache write로 전환</td>
+</tr>
+<tr>
+<td>Dirty Frag</td>
+<td>CVE-2026-43284, CVE-2026-43500, CVE-2026-46300</td>
+<td>network/crypto/fragment path가 shared page ownership을 증명하지 못함</td>
+</tr>
+</tbody>
+</table>
+<h2>분석 질문</h2>
+<ul>
+<li>이 write path는 page ownership을 어떻게 증명하는가?</li>
+<li>shared fragment와 page-cache page가 같은 buffer로 취급되는가?</li>
+<li><code>splice</code>, crypto decrypt, network fragment assembly가 page cache와 만나는가?</li>
+<li>local account나 container workload가 trigger 가능한가?</li>
+<li>mitigation이 운영 기능을 깨뜨리는가?</li>
+</ul>
+<h2>Swarmer Method Card</h2>
+<pre><code>
+method_card:
+  id: kernel-page-cache-write-invariant
+  title: Kernel in-place writes must prove page ownership and COW state
+  cve_ids: [CVE-2016-5195, CVE-2022-0847, CVE-2026-31431, CVE-2026-43284, CVE-2026-43500, CVE-2026-46300]
+  affected_projects: [Linux kernel]
+  vulnerability_class: local-privilege-escalation
+  confidence: high
+  analysis_reverse_engineering:
+    researcher_question: &quot;Which kernel fast paths can write attacker-controlled bytes into page-cache-backed memory?&quot;
+    entrypoints: [get_user_pages, madvise, pipe_buffer, splice, AF_ALG, algif_aead, xfrm ESP, esp4, esp6, rxrpc, skb frag, crypto decrypt]
+    trust_boundary: &quot;local unprivileged user -&gt; kernel networking/crypto page path&quot;
+    sink: &quot;in-place write to shared or page-cache-backed memory&quot;
+    missing_invariant: &quot;page ownership and COW state not proven before write&quot;
+    patch_delta_signal: &quot;copy-before-write, ownership/refcount validation, module/namespace hardening&quot;
+    likely_search_queries:
+      - &quot;copy-on-write&quot;
+      - &quot;pipe_buffer.flags&quot;
+      - &quot;copy_page_to_iter_pipe&quot;
+      - &quot;AF_ALG&quot;
+      - &quot;algif_aead&quot;
+      - &quot;splice&quot;
+      - &quot;skb_frag&quot;
+      - &quot;MSG_SPLICE_PAGES&quot;
+      - &quot;xfrm&quot;
+      - &quot;esp4&quot;
+      - &quot;esp6&quot;
+      - &quot;rxrpc&quot;
+      - &quot;page cache&quot;
+    negative_checks:
+      - &quot;affected modules unavailable or blocked&quot;
+      - &quot;unprivileged user namespaces disabled where relevant&quot;
+      - &quot;copy-on-write enforced before mutation&quot;
+      - &quot;local account/container trigger path absent&quot;
+  reusable_pattern:
+    trigger_questions:
+      - &quot;Can local users reach network/crypto paths that mutate shared pages?&quot;
+      - &quot;Does the write target originate from page cache or a shared fragment?&quot;
+      - &quot;Can the primitive affect executable/read-only file cache?&quot;
+    expected_safe_behavior:
+      - &quot;Writable private copy is made before mutation.&quot;
+      - &quot;Module availability and namespace policies limit reachability.&quot;
+      - &quot;Mitigation does not silently break required workloads without review.&quot;
+    false_positive_checks:
+      - &quot;Kernel version contains fixed copy-before-write semantics.&quot;
+      - &quot;Protocol modules are not loaded and cannot autoload.&quot;
+      - &quot;No local unprivileged trigger context exists.&quot;
+    proof_strategy:
+      - &quot;Use authorized local lab only.&quot;
+      - &quot;Verify kernel version, module state, namespace policy, and mitigation status.&quot;
+      - &quot;Avoid running public LPE payloads on production hosts.&quot;
+  swarmer_mapping:
+    adapters: [kernel, linux, oss-c]
+    stages: [scout, map, BCDA, BGA, P14-review]
+    plugin_kind: runtime-invariant
+    priority: high
+</code></pre>
+<h2>Related</h2>
+<ul>
+<li>linux-dirty-frag-cve-2026-43284-43500-46300-page-cache-lpe-26-06</li>
+<li>linux-copy-fail-cve-2026-31431-public-exploit-26-06</li>
+<li>linux-dirty-pipe-cve-2022-0847-public-exploit-26-06</li>
+<li>linux-dirty-cow-cve-2016-5195-public-exploit-26-06</li>
+<li><a href="./linux-public-exploit-triage.html">Linux-Public-Exploit-Triage</a></li>
+<li><a href="./broad-scope-cve-method-distillation-2026-06.html">CVE-분석방법-증류-광범위취약점-26-06</a></li>
+<li><a href="./linux-public-exploit-cve-collection-2026-06.html">Linux-Public-Exploit-CVE-Collection-26-06</a></li>
+<li>Swarmer</li>
+</ul>
+<h2>Sources</h2>
+<ul>
+<li>linux-dirty-frag-cve-2026-43284-43500-46300-page-cache-lpe-26-06</li>
+<li>linux-copy-fail-cve-2026-31431-public-exploit-26-06</li>
+<li>linux-dirty-pipe-cve-2022-0847-public-exploit-26-06</li>
+<li>linux-dirty-cow-cve-2016-5195-public-exploit-26-06</li>
+</ul>
+  </main>
+  <footer>
+    Published from a private allowlist. Generated 2026-06-06 18:50.
+  </footer>
+</body>
+</html>

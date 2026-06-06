@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Protocol Resource Amplification Invariant · Claudian Public Research</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="../index.html" class="brand">Claudian Public Research</a>
+  </header>
+  <main class="page">
+    <p class="summary">A resource-amplification invariant for protocol parsers and HTTP/2 Bomb style bugs.</p>
+    <h1>Protocol Resource Amplification Invariant</h1>
+<div class="callout"><strong>TLDR</strong>
+<p>프로토콜 parser는 decoded size뿐 아니라 object count, allocation lifetime, stalled stream retention을 동시에 제한해야 한다.</p></div>
+<blockquote>HTTP/2 Bomb은 오래 알려진 compression bomb과 Slowloris hold가 결합될 때 전혀 다른 blast radius가 생긴다는 사례다.</blockquote>
+<blockquote>Swarmer는 protocol implementation audit에서 단일 limit이 아니라 limit matrix를 검증해야 한다.</blockquote>
+<h2>정의</h2>
+<p>Protocol Resource Amplification Invariant는 작은 wire representation이 큰 내부 상태를 만들고, 그 상태가 오래 유지될 수 있는 protocol implementation에서 반드시 지켜야 하는 자원 경계 규칙이다.</p>
+<p>안전한 구현은 다음 네 축을 동시에 제한해야 한다.</p>
+<ul>
+<li>wire payload size</li>
+<li>decoded payload size</li>
+<li>internal object count / bookkeeping allocation</li>
+<li>allocation lifetime / stalled stream retention</li>
+</ul>
+<h2>분석 질문</h2>
+<ul>
+<li>작은 compressed token이 많은 header/object/allocation으로 확장되는가?</li>
+<li>decoded-size limit은 있지만 object-count limit이 없는가?</li>
+<li>flow-control, timeout, backpressure, half-open stream이 cleanup을 지연하는가?</li>
+<li>spec이 split header, duplicate header, continuation frame 같은 예외를 허용하는가?</li>
+<li>여러 구현체가 같은 spec 해석 때문에 같은 bug class를 공유하는가?</li>
+</ul>
+<h2>Swarmer Method Card</h2>
+<pre><code>
+method_card:
+  id: protocol-resource-amplification-invariant
+  title: Protocol parsers must bound size, object count, and allocation lifetime together
+  cve_ids: [CVE-2026-49975]
+  affected_projects: [Apache httpd, nginx, Microsoft IIS, Envoy, Cloudflare Pingora]
+  vulnerability_class: resource-exhaustion
+  confidence: high
+  analysis_reverse_engineering:
+    researcher_question: &quot;Can two known protocol resource primitives compose into a larger DoS class?&quot;
+    entrypoints: [HTTP/2 header decode, HPACK dynamic table, flow-control window, stream timeout]
+    trust_boundary: &quot;unauthenticated network client -&gt; protocol parser and stream state&quot;
+    sink: &quot;server memory allocation retained by stalled stream&quot;
+    missing_invariant: &quot;object-count and allocation-lifetime limits are missing or not coupled to decoded-size limits&quot;
+    patch_delta_signal: &quot;new max header count, split cookie accounting, stalled stream bounds&quot;
+    likely_search_queries:
+      - &quot;HPACK&quot;
+      - &quot;SETTINGS_HEADER_TABLE_SIZE&quot;
+      - &quot;WINDOW_UPDATE&quot;
+      - &quot;LimitRequestFields&quot;
+      - &quot;max_headers&quot;
+      - &quot;cookie&quot;
+    negative_checks:
+      - &quot;hard cap on header field count including split cookies&quot;
+      - &quot;bounded lifetime for stalled streams&quot;
+      - &quot;per-connection and per-worker memory limits&quot;
+      - &quot;HTTP/2 disabled or terminated by protected edge&quot;
+  reusable_pattern:
+    trigger_questions:
+      - &quot;Are size limits and count limits separate?&quot;
+      - &quot;Can the client cheaply keep server allocations live?&quot;
+      - &quot;Can old DoS primitives compose across protocol features?&quot;
+    expected_safe_behavior:
+      - &quot;Small wire input cannot create unbounded internal objects.&quot;
+      - &quot;Stalled streams time out without retaining large allocations.&quot;
+      - &quot;Default configuration includes safe caps.&quot;
+    false_positive_checks:
+      - &quot;HTTP/2 is disabled.&quot;
+      - &quot;Edge proxy normalizes and caps header count.&quot;
+      - &quot;Implementation frees request allocations before response flow-control stalls.&quot;
+    proof_strategy:
+      - &quot;Use authorized lab only.&quot;
+      - &quot;Measure memory accounting under bounded, non-production HTTP/2 requests.&quot;
+      - &quot;Verify rejection/timeout behavior rather than weaponized throughput.&quot;
+  swarmer_mapping:
+    adapters: [protocol, web-http, oss-c, oss-rust, oss-js]
+    stages: [scout, map, BCDA, BGA, P14-review]
+    plugin_kind: cve-pattern
+    priority: high
+</code></pre>
+<h2>Related</h2>
+<ul>
+<li>http2-bomb-cve-2026-49975-protocol-resource-amplification-26-06</li>
+<li><a href="./broad-scope-cve-method-distillation-2026-06.html">CVE-분석방법-증류-광범위취약점-26-06</a></li>
+<li>Swarmer</li>
+</ul>
+<h2>Sources</h2>
+<ul>
+<li>http2-bomb-cve-2026-49975-protocol-resource-amplification-26-06</li>
+</ul>
+  </main>
+  <footer>
+    Published from a private allowlist. Generated 2026-06-06 18:50.
+  </footer>
+</body>
+</html>
