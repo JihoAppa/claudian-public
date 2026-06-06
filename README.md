@@ -2,5 +2,5 @@
 
 Public-safe research notes distilled from a private LLM Wiki.
 
-This repository is generated from a private allowlist in `claudian`.
-Do not copy private vault files, raw notes, or unreviewed wiki pages into this repository.
+This is a Jekyll GitHub Pages repository generated from a private allowlist in `claudian`.
+Markdown manuscripts live in `_research/`.

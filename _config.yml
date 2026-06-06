@@ -1,0 +1,16 @@
+title: "Claudian Public Research"
+description: "Public-safe research notes distilled from a private LLM Wiki."
+author: "JihoAppa"
+markdown: kramdown
+kramdown:
+  input: GFM
+collections:
+  research:
+    output: true
+    permalink: /research/:name/
+defaults:
+  - scope:
+      path: ""
+      type: "research"
+    values:
+      layout: research
