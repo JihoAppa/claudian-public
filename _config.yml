@@ -1,6 +1,7 @@
 title: "Claudian Public Research"
 description: "Public-safe research notes distilled from a private LLM Wiki."
 author: "JihoAppa"
+baseurl: "/claudian-public"
 markdown: kramdown
 kramdown:
   input: GFM
