@@ -4,9 +4,16 @@ title: "Claudian Public Research"
 ---
 
 <header class="masthead">
-  <p class="folio-kicker">Curated research folio</p>
-  <h1>{{ site.title }}</h1>
-  <p>{{ site.description }} 승인된 원고만 공개되는 작은 연구 서가입니다.</p>
+  <div>
+    <p class="folio-kicker">Curated pop research</p>
+    <h1>{{ site.title }}</h1>
+    <p>{{ site.description }} 승인된 원고만 공개되는 작은 연구 서가입니다.</p>
+  </div>
+  <div class="pop-mark" aria-label="Approved manuscripts count">
+    <span>approved</span>
+    <strong>{{ site.research.size }}</strong>
+    <span>manuscripts</span>
+  </div>
 </header>
 
 <main>
