@@ -31,7 +31,7 @@ title: "Claudian Public Research"
     {% for item in section.items %}
       <li>
         <div>
-          <a href="{{ site.baseurl }}{{ item.url }}">{{ item.title }}</a>
+          <a href="{{ item.url | relative_url }}">{{ item.title }}</a>
           {% if item.summary %}<span>{{ item.summary }}</span>{% endif %}
         </div>
       </li>
