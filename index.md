@@ -19,8 +19,7 @@ title: "Claudian Public Research"
 <main>
 {% if site.research.size == 0 %}
   <section class="empty-state">
-    <h2>아직 공개된 글이 없습니다</h2>
-    <p>첫 글은 충분히 다듬은 뒤 이곳에 천천히 올립니다.</p>
+    <h2>아직 공개된 원고가 없습니다</h2>
   </section>
 {% else %}
 {% assign sections = site.research | group_by: "section" %}
