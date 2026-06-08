@@ -7,20 +7,20 @@ title: "Claudian Public Research"
   <div>
     <p class="folio-kicker">Curated pop research</p>
     <h1>{{ site.title }}</h1>
-    <p>{{ site.description }} 승인된 원고만 공개되는 작은 연구 서가입니다.</p>
+    <p>{{ site.description }}</p>
   </div>
-  <div class="pop-mark" aria-label="Approved manuscripts count">
-    <span>approved</span>
+  <div class="pop-mark" aria-label="Published research count">
+    <span>published</span>
     <strong>{{ site.research.size }}</strong>
-    <span>manuscripts</span>
+    <span>notes</span>
   </div>
 </header>
 
 <main>
 {% if site.research.size == 0 %}
   <section class="empty-state">
-    <h2>No manuscripts published</h2>
-    <p>아직 공개 승인된 원고가 없습니다. 이 페이지는 빈 상태를 의도적으로 유지하며, 충분히 검토되고 큐레이션된 글만 Jekyll collection에 들어갑니다.</p>
+    <h2>아직 공개된 글이 없습니다</h2>
+    <p>첫 글은 충분히 다듬은 뒤 이곳에 천천히 올립니다.</p>
   </section>
 {% else %}
 {% assign sections = site.research | group_by: "section" %}

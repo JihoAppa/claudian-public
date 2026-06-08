@@ -1,9 +1,9 @@
 # Claudian Public Research
 
-Public-safe research notes distilled from a private LLM Wiki.
+개인적으로 운영되는 연구 서가입니다.
 
-This is a Jekyll GitHub Pages repository generated from a private allowlist in `claudian`.
-Approved Markdown manuscripts will live in `_research/`; the collection is intentionally empty until a manuscript is explicitly approved.
+This is a Jekyll GitHub Pages repository for a personally curated research library.
+Published Markdown notes live in `_research/`.
 
 Repository: https://github.com/JihoAppa/claudian-public.git
 Pages: https://research.millionqubits.com/
