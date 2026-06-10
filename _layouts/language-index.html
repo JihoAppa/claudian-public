@@ -1,0 +1,104 @@
+---
+layout: default
+---
+{% assign page_language = page.language | default: site.lang | default: "ko" %}
+{% case page_language %}
+{% when "en" %}
+  {% assign language_label = "Languages" %}
+  {% assign kicker = "Curated research" %}
+  {% assign description = "A personally maintained research shelf." %}
+  {% assign count_top = "published" %}
+  {% assign count_bottom = "articles" %}
+  {% assign empty_text = "No public articles yet" %}
+{% when "ja" %}
+  {% assign language_label = "言語" %}
+  {% assign kicker = "キュレーションされた研究" %}
+  {% assign description = "個人で運営している研究書架です。" %}
+  {% assign count_top = "公開済み" %}
+  {% assign count_bottom = "記事" %}
+  {% assign empty_text = "まだ公開記事はありません" %}
+{% when "zh" %}
+  {% assign language_label = "语言" %}
+  {% assign kicker = "精选研究" %}
+  {% assign description = "个人运营的研究书架。" %}
+  {% assign count_top = "已发布" %}
+  {% assign count_bottom = "篇文章" %}
+  {% assign empty_text = "尚无公开文章" %}
+{% else %}
+  {% assign language_label = "언어" %}
+  {% assign kicker = "큐레이션된 연구" %}
+  {% assign description = "개인적으로 운영되는 연구 서가입니다." %}
+  {% assign count_top = "공개" %}
+  {% assign count_bottom = "편" %}
+  {% assign empty_text = "아직 공개된 원고가 없습니다" %}
+{% endcase %}
+{% assign language_items = site.research | where: "language", page_language %}
+
+<header class="masthead">
+  <div>
+    <nav class="language-switch" aria-label="{{ language_label }}">
+      <span>{{ language_label }}</span>
+      {% assign home_languages = "ko,en,ja,zh" | split: "," %}
+      {% for item_language in home_languages %}
+        {% if page_language == "zh" %}
+          {% case item_language %}{% when "en" %}{% assign item_label = "英语" %}{% when "ja" %}{% assign item_label = "日语" %}{% when "zh" %}{% assign item_label = "中文" %}{% else %}{% assign item_label = "韩语" %}{% endcase %}
+        {% elsif page_language == "ja" %}
+          {% case item_language %}{% when "en" %}{% assign item_label = "英語" %}{% when "ja" %}{% assign item_label = "日本語" %}{% when "zh" %}{% assign item_label = "中国語" %}{% else %}{% assign item_label = "韓国語" %}{% endcase %}
+        {% elsif page_language == "en" %}
+          {% case item_language %}{% when "en" %}{% assign item_label = "English" %}{% when "ja" %}{% assign item_label = "Japanese" %}{% when "zh" %}{% assign item_label = "Chinese" %}{% else %}{% assign item_label = "Korean" %}{% endcase %}
+        {% else %}
+          {% case item_language %}{% when "en" %}{% assign item_label = "영어" %}{% when "ja" %}{% assign item_label = "일본어" %}{% when "zh" %}{% assign item_label = "중국어" %}{% else %}{% assign item_label = "한국어" %}{% endcase %}
+        {% endif %}
+        {% if item_language == "ko" %}
+          {% assign item_url = "/ko/" %}
+        {% else %}
+          {% assign item_url = "/" | append: item_language | append: "/" %}
+        {% endif %}
+      <a href="{{ item_url | relative_url }}" lang="{{ item_language }}" hreflang="{{ item_language }}"{% if item_language == page_language %} aria-current="page"{% endif %}>{{ item_label }}</a>
+      {% endfor %}
+    </nav>
+    <p class="folio-kicker">{{ kicker }}</p>
+    <h1>{{ site.title }}</h1>
+    <p>{{ description }}</p>
+  </div>
+  <div class="pop-mark" aria-label="{{ count_top }} {{ language_items.size }} {{ count_bottom }}">
+    <span>{{ count_top }}</span>
+    <strong>{{ language_items.size }}</strong>
+    <span>{{ count_bottom }}</span>
+  </div>
+</header>
+
+<main>
+{% if language_items.size == 0 %}
+  <section class="empty-state">
+    <h2>{{ empty_text }}</h2>
+  </section>
+{% else %}
+{% assign sections = language_items | group_by: "section" %}
+{% assign article_index = 0 %}
+{% for section in sections %}
+  <section class="workflow">
+    <h2>{{ section.name }}</h2>
+    <ol class="article-list">
+    {% assign ordered_section_items = section.items | sort: "article_order" %}
+    {% for item in ordered_section_items %}
+      {% assign article_index = article_index | plus: 1 %}
+      {% assign article_number_source = item.article_order | default: article_index | plus: 0 %}
+      {% if article_number_source < 10 %}
+        {% assign article_number = article_number_source | prepend: "0" %}
+      {% else %}
+        {% assign article_number = article_number_source %}
+      {% endif %}
+      <li>
+        <span class="article-number" aria-hidden="true"><b>{{ article_number }}</b></span>
+        <div>
+          <a href="{{ item.url | relative_url }}">{{ item.title }}</a>
+          {% if item.summary %}<span class="article-summary">{{ item.summary }}</span>{% endif %}
+        </div>
+      </li>
+    {% endfor %}
+    </ol>
+  </section>
+{% endfor %}
+{% endif %}
+</main>

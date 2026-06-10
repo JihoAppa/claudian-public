@@ -1,18 +1,239 @@
 <!doctype html>
-<html lang="ko">
+<html lang="{{ page.language | default: site.lang | default: 'ko' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% if page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
+  {% if page.summary %}<meta name="description" content="{{ page.summary | strip_html | normalize_whitespace | truncate: 155 }}">{% endif %}
+  {% if page.translation_group == "home" %}
+  <link rel="canonical" href="{{ page.url | absolute_url }}">
+  <link rel="alternate" hreflang="ko" href="{{ '/ko/' | absolute_url }}">
+  <link rel="alternate" hreflang="en" href="{{ '/en/' | absolute_url }}">
+  <link rel="alternate" hreflang="ja" href="{{ '/ja/' | absolute_url }}">
+  <link rel="alternate" hreflang="zh" href="{{ '/zh/' | absolute_url }}">
+  <link rel="alternate" hreflang="x-default" href="{{ '/' | absolute_url }}">
+  {% endif %}
+  {% if page.collection == "research" %}
+  {% assign current_slug = page.slug | default: page.name | remove: ".md" %}
+  {% assign translation_group = page.translation_of | default: current_slug %}
+  {% assign x_default_url = page.url | absolute_url %}
+  <link rel="canonical" href="{{ page.url | absolute_url }}">
+  {% for item in site.research %}
+    {% assign item_slug = item.slug | default: item.name | remove: ".md" %}
+    {% assign item_group = item.translation_of | default: item_slug %}
+    {% if item_group == translation_group or item_slug == translation_group %}
+      {% assign item_language = item.language | default: site.lang | default: "ko" %}
+  <link rel="alternate" hreflang="{{ item_language }}" href="{{ item.url | absolute_url }}">
+      {% if item_language == "ko" %}{% assign x_default_url = item.url | absolute_url %}{% endif %}
+    {% endif %}
+  {% endfor %}
+  <link rel="alternate" hreflang="x-default" href="{{ x_default_url }}">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7572151683104561" crossorigin="anonymous"></script>
+  {% endif %}
   <link rel="stylesheet" href="{{ '/assets/style.css' | relative_url }}">
 </head>
 <body>
+  {% if page.url == "/" %}
+  <script>
+    (() => {
+      let stored = "";
+      try {
+        stored = localStorage.getItem("claudianPublicResearchLanguage") || "";
+      } catch (error) {}
+      const preferred = stored || (navigator.languages && navigator.languages[0]) || navigator.language || "";
+      const lang = preferred.toLowerCase();
+      const target = lang.startsWith("zh") ? "/zh/" : lang.startsWith("ja") ? "/ja/" : lang.startsWith("en") ? "/en/" : "/ko/";
+      if (location.pathname === "/" && target !== "/") location.replace(target);
+    })();
+  </script>
+  {% endif %}
+  {% if page.collection == "research" %}
+  <script>
+    (() => {
+      const currentLanguage = "{{ page.language | default: site.lang | default: 'ko' }}";
+      const translations = {
+      {% assign current_slug = page.slug | default: page.name | remove: ".md" %}
+      {% assign translation_group = page.translation_of | default: current_slug %}
+      {% for item in site.research %}
+        {% assign item_slug = item.slug | default: item.name | remove: ".md" %}
+        {% assign item_group = item.translation_of | default: item_slug %}
+        {% if item_group == translation_group or item_slug == translation_group %}
+          {% assign item_language = item.language | default: site.lang | default: "ko" %}
+        "{{ item_language }}": "{{ item.url | relative_url }}",
+        {% endif %}
+      {% endfor %}
+      };
+      const normalize = (value) => {
+        const lang = (value || "").toLowerCase();
+        if (lang.startsWith("zh")) return "zh";
+        if (lang.startsWith("ja")) return "ja";
+        if (lang.startsWith("en")) return "en";
+        return "ko";
+      };
+      let stored = "";
+      try {
+        stored = localStorage.getItem("claudianPublicResearchLanguage") || "";
+      } catch (error) {}
+      const preferred = stored || (navigator.languages && navigator.languages[0]) || navigator.language || "";
+      const targetLanguage = normalize(preferred);
+      const target = translations[targetLanguage];
+      if (target && targetLanguage !== currentLanguage && location.pathname !== target) {
+        location.replace(target);
+      }
+    })();
+  </script>
+  {% endif %}
   <div class="site-shell">
     <div class="pop-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     {{ content }}
   </div>
-  <footer>
-    개인적으로 운영되는 연구 서가입니다.
-  </footer>
+  {% assign page_language = page.language | default: site.lang | default: "ko" %}
+  {% case page_language %}
+  {% when "en" %}
+    {% assign footer_text = "A personally maintained research shelf." %}
+  {% when "ja" %}
+    {% assign footer_text = "個人で運営している研究書架です。" %}
+  {% when "zh" %}
+    {% assign footer_text = "个人运营的研究书架。" %}
+  {% else %}
+    {% assign footer_text = "개인적으로 운영되는 연구 서가입니다." %}
+  {% endcase %}
+  <footer>{{ footer_text }}</footer>
+  <script>
+    document.querySelectorAll(".language-switch a[hreflang]").forEach((link) => {
+      link.addEventListener("click", () => {
+        try {
+          localStorage.setItem("claudianPublicResearchLanguage", link.getAttribute("hreflang"));
+        } catch (error) {}
+      });
+    });
+  </script>
+  <script>
+    (() => {
+      const roots = document.querySelectorAll(".essay");
+      if (!roots.length) return;
+
+      const ignoredSelector = "a, code, pre, script, style, textarea, input, option, mark, .mermaid";
+      const highlightPattern = /==([^=\n]+?)==/g;
+
+      roots.forEach((root) => {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+          acceptNode(node) {
+            if (!node.nodeValue.includes("==")) return NodeFilter.FILTER_REJECT;
+            if (node.parentElement && node.parentElement.closest(ignoredSelector)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        });
+
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+
+        nodes.forEach((node) => {
+          const text = node.nodeValue;
+          highlightPattern.lastIndex = 0;
+          if (!highlightPattern.test(text)) return;
+
+          const fragment = document.createDocumentFragment();
+          let lastIndex = 0;
+          highlightPattern.lastIndex = 0;
+
+          for (const match of text.matchAll(highlightPattern)) {
+            if (match.index > lastIndex) {
+              fragment.append(document.createTextNode(text.slice(lastIndex, match.index)));
+            }
+            const mark = document.createElement("mark");
+            mark.className = "research-highlight";
+            mark.textContent = match[1];
+            fragment.append(mark);
+            lastIndex = match.index + match[0].length;
+          }
+
+          if (lastIndex < text.length) {
+            fragment.append(document.createTextNode(text.slice(lastIndex)));
+          }
+          node.replaceWith(fragment);
+        });
+      });
+    })();
+  </script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+
+    const blocks = document.querySelectorAll("pre > code.language-mermaid");
+    if (blocks.length) {
+      blocks.forEach((block) => {
+        const container = document.createElement("div");
+        container.className = "mermaid";
+        container.textContent = block.textContent;
+        block.parentElement.replaceWith(container);
+      });
+
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: "strict",
+        theme: "base",
+        themeVariables: {
+          background: "#fffdf7",
+          primaryColor: "#ffdf5c",
+          primaryTextColor: "#151313",
+          primaryBorderColor: "#151313",
+          lineColor: "#151313",
+          secondaryColor: "#18c7d9",
+          tertiaryColor: "#ff4b3e",
+          fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+        },
+        flowchart: {
+          curve: "basis",
+          htmlLabels: true,
+          padding: 12
+        }
+      });
+
+      try {
+        await mermaid.run({ querySelector: ".mermaid" });
+      } catch (error) {
+        document.querySelectorAll(".mermaid").forEach((node) => {
+          if (!node.querySelector("svg")) {
+            node.classList.add("mermaid-error");
+            node.textContent = `Diagram could not be rendered:
+${error.message || error}`;
+          }
+        });
+      }
+    }
+  </script>
+  <script>
+    document.querySelectorAll(".ad-slot .adsbygoogle").forEach((ad) => {
+      const slot = ad.closest(".ad-slot");
+      const localHosts = new Set(["localhost", "127.0.0.1", "::1"]);
+      if (localHosts.has(location.hostname)) {
+        slot.classList.add("is-local-preview", "is-ad-empty");
+        return;
+      }
+
+      const syncState = () => {
+        const status = ad.getAttribute("data-ad-status");
+        const filled = status === "filled";
+        slot.classList.toggle("is-ad-filled", filled);
+        slot.classList.toggle("is-ad-empty", !filled);
+      };
+
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      } catch (error) {
+        slot.classList.add("is-ad-empty");
+      }
+
+      new MutationObserver(syncState).observe(ad, {
+        attributes: true,
+        childList: true,
+        subtree: true
+      });
+      setTimeout(syncState, 1600);
+      setTimeout(syncState, 4200);
+    });
+  </script>
 </body>
 </html>

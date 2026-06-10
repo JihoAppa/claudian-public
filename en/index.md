@@ -1,7 +1,7 @@
 ---
 layout: language-index
 title: "Claudian Public Research"
-language: "ko"
+language: "en"
 translation_group: "home"
-permalink: /
+permalink: /en/
 ---

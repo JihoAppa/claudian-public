@@ -6,6 +6,79 @@ layout: default
   <span class="edition">pop build</span>
 </header>
 <main class="essay">
+  {% assign page_language = page.language | default: site.lang | default: "ko" %}
+  {% case page_language %}
+  {% when "en" %}
+    {% assign author_label = "Author" %}
+    {% assign date_label = "Date" %}
+    {% assign language_label = "Languages" %}
+    {% assign ad_label = "Advertisement" %}
+    {% assign ad_waiting = "Waiting for ad" %}
+    {% assign ad_standby = "AD STANDBY" %}
+  {% when "ja" %}
+    {% assign author_label = "著者" %}
+    {% assign date_label = "日付" %}
+    {% assign language_label = "言語" %}
+    {% assign ad_label = "広告" %}
+    {% assign ad_waiting = "広告待機中" %}
+    {% assign ad_standby = "広告枠" %}
+  {% when "zh" %}
+    {% assign author_label = "作者" %}
+    {% assign date_label = "日期" %}
+    {% assign language_label = "语言" %}
+    {% assign ad_label = "广告" %}
+    {% assign ad_waiting = "广告加载中" %}
+    {% assign ad_standby = "广告待命" %}
+  {% else %}
+    {% assign author_label = "작성자" %}
+    {% assign date_label = "작성일" %}
+    {% assign language_label = "언어" %}
+    {% assign ad_label = "광고" %}
+    {% assign ad_waiting = "광고 대기중" %}
+    {% assign ad_standby = "AD STANDBY" %}
+  {% endcase %}
+  {% assign current_slug = page.slug | default: page.name | remove: ".md" %}
+  {% assign translation_group = page.translation_of | default: current_slug %}
+  <nav class="language-switch" aria-label="{{ language_label }}">
+    <span>{{ language_label }}</span>
+    {% for item in site.research %}
+      {% assign item_slug = item.slug | default: item.name | remove: ".md" %}
+      {% assign item_group = item.translation_of | default: item_slug %}
+      {% if item_group == translation_group or item_slug == translation_group %}
+        {% assign item_language = item.language | default: site.lang | default: "ko" %}
+        {% if page_language == "zh" %}
+          {% case item_language %}{% when "en" %}{% assign item_label = "英语" %}{% when "ja" %}{% assign item_label = "日语" %}{% when "zh" %}{% assign item_label = "中文" %}{% else %}{% assign item_label = "韩语" %}{% endcase %}
+        {% elsif page_language == "ja" %}
+          {% case item_language %}{% when "en" %}{% assign item_label = "英語" %}{% when "ja" %}{% assign item_label = "日本語" %}{% when "zh" %}{% assign item_label = "中国語" %}{% else %}{% assign item_label = "韓国語" %}{% endcase %}
+        {% elsif page_language == "en" %}
+          {% case item_language %}{% when "en" %}{% assign item_label = "English" %}{% when "ja" %}{% assign item_label = "Japanese" %}{% when "zh" %}{% assign item_label = "Chinese" %}{% else %}{% assign item_label = "Korean" %}{% endcase %}
+        {% else %}
+          {% case item_language %}{% when "en" %}{% assign item_label = "영어" %}{% when "ja" %}{% assign item_label = "일본어" %}{% when "zh" %}{% assign item_label = "중국어" %}{% else %}{% assign item_label = "한국어" %}{% endcase %}
+        {% endif %}
+    <a href="{{ item.url | relative_url }}" lang="{{ item_language }}" hreflang="{{ item_language }}"{% if item.url == page.url %} aria-current="page"{% endif %}>{{ item_label }}</a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+  {% assign display_author = page.author | default: site.author %}
+  {% assign display_date = page.updated | default: page.created | default: page.date %}
+  {% if display_author or display_date %}
+  <div class="article-meta">
+    {% if display_author %}<span>{{ author_label }} {{ display_author }}</span>{% endif %}
+    {% if display_date %}<time datetime="{{ display_date | date: '%Y-%m-%d' }}">{{ date_label }} {{ display_date | date: "%Y.%m.%d" }}</time>{% endif %}
+  </div>
+  {% endif %}
   {% if page.summary %}<p class="summary">{{ page.summary }}</p>{% endif %}
+  <aside class="ad-slot is-ad-empty" aria-label="{{ ad_label }}">
+    <div class="ad-fallback" aria-hidden="true">
+      <span>{{ ad_waiting }}</span>
+      <strong>{{ ad_standby }}</strong>
+    </div>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-7572151683104561"
+         data-ad-slot="6485416245"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+  </aside>
   {{ content }}
 </main>
