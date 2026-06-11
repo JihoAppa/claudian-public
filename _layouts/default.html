@@ -14,10 +14,11 @@
   <link rel="alternate" hreflang="zh" href="{{ '/zh/' | absolute_url }}">
   <link rel="alternate" hreflang="x-default" href="{{ '/' | absolute_url }}">
   {% endif %}
-  {% if page.collection == "research" %}
+  {% if page.collection == "research" or page.layout == "language-index" %}
   {% assign current_slug = page.slug | default: page.name | remove: ".md" %}
   {% assign translation_group = page.translation_of | default: current_slug %}
   {% assign x_default_url = page.url | absolute_url %}
+  {% if page.collection == "research" %}
   <link rel="canonical" href="{{ page.url | absolute_url }}">
   {% for item in site.research %}
     {% assign item_slug = item.slug | default: item.name | remove: ".md" %}
@@ -29,6 +30,7 @@
     {% endif %}
   {% endfor %}
   <link rel="alternate" hreflang="x-default" href="{{ x_default_url }}">
+  {% endif %}
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7572151683104561" crossorigin="anonymous"></script>
   {% endif %}
   <link rel="stylesheet" href="{{ '/assets/style.css' | relative_url }}">

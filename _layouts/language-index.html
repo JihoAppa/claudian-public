@@ -10,6 +10,9 @@ layout: default
   {% assign count_top = "published" %}
   {% assign count_bottom = "articles" %}
   {% assign empty_text = "No public articles yet" %}
+  {% assign ad_label = "Advertisement" %}
+  {% assign ad_waiting = "Waiting for ad" %}
+  {% assign ad_standby = "AD STANDBY" %}
 {% when "ja" %}
   {% assign language_label = "言語" %}
   {% assign kicker = "キュレーションされた研究" %}
@@ -17,6 +20,9 @@ layout: default
   {% assign count_top = "公開済み" %}
   {% assign count_bottom = "記事" %}
   {% assign empty_text = "まだ公開記事はありません" %}
+  {% assign ad_label = "広告" %}
+  {% assign ad_waiting = "広告待機中" %}
+  {% assign ad_standby = "広告枠" %}
 {% when "zh" %}
   {% assign language_label = "语言" %}
   {% assign kicker = "精选研究" %}
@@ -24,6 +30,9 @@ layout: default
   {% assign count_top = "已发布" %}
   {% assign count_bottom = "篇文章" %}
   {% assign empty_text = "尚无公开文章" %}
+  {% assign ad_label = "广告" %}
+  {% assign ad_waiting = "广告加载中" %}
+  {% assign ad_standby = "广告待命" %}
 {% else %}
   {% assign language_label = "언어" %}
   {% assign kicker = "큐레이션된 연구" %}
@@ -31,6 +40,9 @@ layout: default
   {% assign count_top = "공개" %}
   {% assign count_bottom = "편" %}
   {% assign empty_text = "아직 공개된 원고가 없습니다" %}
+  {% assign ad_label = "광고" %}
+  {% assign ad_waiting = "광고 대기중" %}
+  {% assign ad_standby = "AD STANDBY" %}
 {% endcase %}
 {% assign language_items = site.research | where: "language", page_language %}
 
@@ -69,6 +81,18 @@ layout: default
 </header>
 
 <main>
+<aside class="ad-slot is-ad-empty" aria-label="{{ ad_label }}">
+  <div class="ad-fallback" aria-hidden="true">
+    <span>{{ ad_waiting }}</span>
+    <strong>{{ ad_standby }}</strong>
+  </div>
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-7572151683104561"
+       data-ad-slot="6485416245"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+</aside>
 {% if language_items.size == 0 %}
   <section class="empty-state">
     <h2>{{ empty_text }}</h2>
